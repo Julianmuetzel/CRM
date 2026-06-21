@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0A0E1A;
+  --surface: #111827;
+  --card: #141E30;
+  --border: #1E293B;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  background-color: var(--bg);
+}
+
+body {
+  background-color: var(--bg);
+  color: #F1F5F9;
+  font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  min-height: 100dvh;
+}
+
+/* Mobile scroll behavior */
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Safe area for iOS */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 2px;
+}
+
+/* Chart tooltips */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: #141E30 !important;
+  border-color: #1E293B !important;
+  border-radius: 8px !important;
+}
+
+/* Animation */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Number glow for profit/loss */
+.glow-profit {
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+.glow-loss {
+  text-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+/* Active states for iOS */
+button:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+/* Tab bar safe area */
+.tab-bar {
+  padding-bottom: max(env(safe-area-inset-bottom), 8px);
+}
