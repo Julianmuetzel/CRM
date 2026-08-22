@@ -1,0 +1,78 @@
+scanner:
+  min_price: 1.5
+  max_price: 20.0
+  min_gap_pct: 10.0
+  max_float_shares: 20000000
+  preferred_float_shares: 10000000
+  min_rvol: 5.0
+  min_premarket_volume: 100000
+  require_catalyst: true
+  max_symbols_per_day: 4
+  exclude_otc: true
+setups:
+  enabled:
+  - micro_pullback
+  - bull_flag
+  - flat_top_breakout
+  - opening_range_breakout
+  - vwap_reclaim
+  micro_pullback_max_bars: 3
+  micro_pullback_max_retrace: 0.5
+  micro_pullback_require_above_ema: true
+  bull_flag_impulse_min_bars: 2
+  bull_flag_impulse_min_pct: 3.0
+  bull_flag_consolidation_min_bars: 2
+  bull_flag_consolidation_max_bars: 6
+  bull_flag_max_retrace: 0.5
+  flat_top_min_touches: 2
+  flat_top_tolerance_pct: 0.3
+  flat_top_lookback: 10
+  orb_minutes: 5
+  vwap_reclaim_min_bars_below: 3
+  require_volume_confirmation: true
+  volume_confirm_multiple: 1.5
+  ema_fast: 9
+  ema_slow: 20
+  atr_period: 14
+risk:
+  starting_equity: 30000.0
+  risk_per_trade_pct: 1.0
+  max_risk_per_trade_usd: 500.0
+  min_reward_risk: 2.0
+  max_stop_distance_pct: 5.0
+  min_stop_distance_cents: 0.05
+  max_cost_drag_r: 0.15
+  daily_max_loss_usd: 1000.0
+  daily_profit_giveback_pct: 30.0
+  max_trades_per_day: 6
+  max_consecutive_losses: 3
+  size_reduction_after_loss: 0.5
+  max_position_pct_of_equity: 100.0
+  max_pct_of_bar_volume: 2.0
+  scale_out:
+  - 0.5
+  - 0.25
+  - 0.25
+  scale_out_r:
+  - 1.0
+  - 2.0
+  - 3.0
+  move_stop_to_breakeven_at_r: 1.0
+  trail_with_ema: true
+costs:
+  commission_per_share: 0.0049
+  commission_min_ticket: 0.99
+  ecn_remove_fee_per_share: 0.003
+  sec_fee_rate: 2.78e-05
+  taf_per_share: 0.000166
+  taf_max: 8.3
+  slippage_atr_multiple: 0.1
+  slippage_min_cents: 0.01
+  slippage_max_cents: 0.15
+session:
+  timezone: America/New_York
+  market_open: 09:30
+  prime_window_end: '10:30'
+  trading_cutoff: '11:30'
+  force_flat: '15:55'
+  allow_premarket: false
