@@ -14,7 +14,8 @@ import pytest
 
 from mds.config import SetupConfig
 from mds.indicators import enrich
-from mds.patterns import Bars, micro_pullback, bull_flag, flat_top_breakout, detect
+from mds.patterns import (Bars, micro_pullback, bull_flag, flat_top_breakout,
+                         opening_range_breakout, detect)
 
 NY = "America/New_York"
 
@@ -98,6 +99,59 @@ def test_flat_top_needs_price_coiled_under_the_level_not_through_it():
     # could never fire.
     through = coiled[:-1] + [11.60]
     assert flat_top_breakout(make_bars(through), i, cfg) is None
+
+
+def test_opening_range_breakout_stops_at_the_midline():
+    """The stop sits at the range midline, giving a 2:1 setup by construction.
+
+    Sourced from a third-party breakdown of this setup (not Ross Cameron's
+    own channel - see STRATEGIE.md 1b): stop at the midline, "halfway" target
+    at high + (high - mid), "full" target at high + (high - low). Since the
+    midline splits the range in half, risk (entry to midline) is exactly half
+    of the reward to the full target - 2:1 by construction.
+    """
+    cfg = SetupConfig(orb_minutes=5)
+    # Opening range bars 0-4: low=10.00, high=10.50. Bar 5 (bar_of_session==5)
+    # is the detection bar: it must NOT have closed above the range yet (the
+    # detector publishes a trigger for a LATER bar to fill, same as every
+    # other setup) - it only wicks into the range on its high.
+    closes = [10.10, 10.20, 10.05, 10.40, 10.30, 10.45]
+    highs =  [10.15, 10.25, 10.10, 10.50, 10.35, 10.48]
+    lows =   [10.00, 10.15, 10.00, 10.25, 10.20, 10.35]
+    idx = pd.date_range("2025-03-03 09:30", periods=6, freq="1min", tz=NY)
+    df = pd.DataFrame({
+        "open": [10.05] * 6, "high": highs, "low": lows, "close": closes,
+        "volume": [100_000] * 6,
+    }, index=idx)
+    b = Bars.from_frame(enrich(df))
+
+    i = 5
+    sig = opening_range_breakout(b, i, cfg)
+    assert sig is not None
+    or_mid = (10.50 + 10.00) / 2.0
+    # The buffer scales with ATR (see _stop_buffer), so pin the stop to "just
+    # under the midline" rather than to an exact tick offset.
+    assert sig.stop < or_mid
+    assert sig.stop == pytest.approx(or_mid, abs=0.10)
+    assert sig.meta["full_target"] == pytest.approx(2 * 10.50 - 10.00)
+
+    # The 2:1 relationship is exact measured from the range high itself -
+    # that is the structural claim the source video actually makes:
+    # (high - mid) is exactly half of (full_target - high) because the
+    # midline splits the range in half.
+    structural_risk = sig.meta["or_high"] - sig.meta["or_mid"]
+    structural_reward = sig.meta["full_target"] - sig.meta["or_high"]
+    assert structural_reward / structural_risk == pytest.approx(2.0, abs=1e-9)
+
+    # The TRADEABLE ratio - from the actual fill trigger (high + 1 tick) and
+    # the actual stop (mid - buffer) - is a little worse than 2:1. The tick
+    # and the ATR buffer each eat into the risk side's exact midpoint, so a
+    # tight opening range on a low-priced stock can land under this system's
+    # min_reward_risk=2.0 filter even though the setup "is" a 2:1 by the
+    # source's own description. That erosion is real, not a test artefact.
+    tradeable_risk = sig.trigger - sig.stop
+    tradeable_reward = sig.meta["full_target"] - sig.trigger
+    assert 1.5 < tradeable_reward / tradeable_risk < 2.0
 
 
 def test_detect_ranks_by_configured_preference_not_tightest_stop():

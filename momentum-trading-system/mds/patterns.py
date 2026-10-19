@@ -268,6 +268,21 @@ def flat_top_breakout(b: Bars, i: int, cfg: SetupConfig) -> Signal | None:
 def opening_range_breakout(b: Bars, i: int, cfg: SetupConfig) -> Signal | None:
     """Break of the first N minutes' range.
 
+    The stop sits at the midline of the opening range rather than at an
+    ATR-capped level below the low. This is a deliberate, sourced design
+    choice, not an arbitrary tightening:
+
+    A third-party breakdown of this setup (not Ross Cameron's own channel -
+    see STRATEGIE.md section 1b for the scene-analysis evidence and that
+    distinction) defines two measured-move targets from the range: a
+    "halfway" target at high + (high - midline), and a "full" target at
+    high + (high - low). Because the midline splits the range in half by
+    definition, the stop-to-midline risk is exactly half of the
+    entry-to-full-target reward - a 2:1 reward:risk by construction, which
+    is exactly the ratio this system already requires everywhere else. The
+    previous ATR-capped stop had no such relationship to the actual targets
+    and was this system's weakest setup for that reason.
+
     Deliberately fires once per session: the opening range stops being the
     opening range after it has been resolved.
     """
@@ -286,11 +301,12 @@ def opening_range_breakout(b: Bars, i: int, cfg: SetupConfig) -> Signal | None:
     if b.close[i] > or_high:
         return None
 
+    or_mid = (or_high + or_low) / 2.0
+    half_target = 2 * or_high - or_mid
+    full_target = 2 * or_high - or_low
+
     trigger = round(or_high + TICK, 2)
-    # A full opening-range stop is often too wide; cap it and let the
-    # reward:risk filter in risk.py reject what is left.
-    stop = round(max(or_low, b.close[i] - 2.0 * b.atr[i] if np.isfinite(b.atr[i]) else or_low)
-                 - _stop_buffer(b, i), 2)
+    stop = round(or_mid - _stop_buffer(b, i), 2)
     if stop >= trigger:
         return None
     return Signal(
@@ -298,8 +314,10 @@ def opening_range_breakout(b: Bars, i: int, cfg: SetupConfig) -> Signal | None:
         bar=i,
         trigger=trigger,
         stop=stop,
-        rationale=f"break of the {m}-minute opening range {or_low:.2f}-{or_high:.2f}",
-        meta={"or_high": or_high, "or_low": or_low},
+        rationale=(f"break of the {m}-minute opening range {or_low:.2f}-{or_high:.2f}, "
+                   f"stop at the midline {or_mid:.2f}"),
+        meta={"or_high": or_high, "or_low": or_low, "or_mid": or_mid,
+              "half_target": half_target, "full_target": full_target},
     )
 
 

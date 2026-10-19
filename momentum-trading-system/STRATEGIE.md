@@ -6,18 +6,19 @@ jeweiligen Umsetzung im Code und einer ehrlichen Einordnung, was daran
 
 **Quellenlage:** YouTube ist im Build-Container selbst gesperrt (verifiziert:
 `403` über Proxy *und* direkt), lässt sich aber über den Higgsfield-MCP-Server
-analysieren, der die URL auf eigener Infrastruktur abruft. Zwei Analysen
-wurden tatsächlich durchgeführt — eine Trade-Recap (vollständig, siehe
-Abschnitt 1a) und ein 2015er-Strategie-Webinar (fehlgeschlagen: zu lang für
-eine verlässliche Szenenanalyse; Higgsfields eigene Tool-Beschreibung warnt
-genau davor). Die quantitativen Parameter in `config/strategy.yaml` stammen
-weiterhin aus der öffentlich dokumentierten Fassung der Strategie, nicht aus
-den Videos — dafür bräuchte es kurze, setup-fokussierte Clips statt Recaps
-oder langer Webinare. `scripts/fetch_transcripts.py` bleibt der zweite,
-unabhängige Weg (Untertitel statt Szenenanalyse), sobald `youtube.com` in der
-Umgebung freigegeben ist.
+analysieren, der die URL auf eigener Infrastruktur abruft. Drei Analysen
+wurden tatsächlich durchgeführt (Abschnitt 0). Die quantitativen Parameter in
+`config/strategy.yaml` stammen größtenteils weiterhin aus der öffentlich
+dokumentierten Fassung der Strategie, nicht aus den Videos selbst — mit einer
+Ausnahme (0b), die zu einer tatsächlichen Code-Änderung geführt hat.
+`scripts/fetch_transcripts.py` bleibt der zweite, unabhängige Weg (Untertitel
+statt Szenenanalyse), sobald `youtube.com` in der Umgebung freigegeben ist.
 
-### 1a. Was sich tatsächlich verifizieren ließ
+---
+
+## 0. Verifizierte Videobelege
+
+### 0a. Trade-Recap (Primärquelle, @DaytradeWarrior)
 
 Eine Szenenanalyse von [„Frustrating Red Day -$2,900 on \$EVH"](https://www.youtube.com/watch?v=zgJizLa4zqI)
 (Trade-Recap, nicht Strategie-Erklärung) bestätigt gelebte Praxis, liefert
@@ -41,6 +42,62 @@ Drei Dinge daran sind bemerkenswert:
    red 2900." Das ist eine unabhängige, reale Bestätigung von Abschnitt 4,
    Punkt 3 (Sequenz-Verteilung) — Verlustserien sind der Normalfall, keine
    Ausnahme, auch beim Strategie-Urheber selbst.
+
+Eine zweite Analyse (2015er eSignal-Webinar, direkt von Ross Cameron) **schlug
+fehl** — zu lang für eine verlässliche Szenenanalyse. Higgsfields eigene
+Tool-Beschreibung warnt explizit davor: Je länger das Video, desto
+unzuverlässiger die Szenenanalyse.
+
+### 0b. Opening-Range-Breakout-Mechanik (Drittquelle, NICHT @DaytradeWarrior)
+
+Eine dritte Analyse — Video-ID `0PNVuLVvFuE`, gefunden über Websuche nach
+„Warrior Trading's $5M Breakout Strategy" — lieferte eine detaillierte
+Setup-Erklärung. **Wichtig:** Die Szenenanalyse zeigt zwei verschiedene
+Personen. Szene 1 ist ein kurzer Lizenz-Clip von Ross Cameron. Ab Szene 3
+übernimmt eine andere Person — anderes Studio, anderes Erscheinungsbild,
+eigene Website (`daytradingstrategies.net`) — die ihre **eigene,
+nachgebaute** Version von Ross' Opening-Range-Breakout präsentiert und
+ausdrücklich sagt: „unlike we did with Ross Cameron of Warrior Trading". Das
+ist also eine **Drittinterpretation**, kein Zitat von Ross Cameron selbst.
+
+Trotzdem ist die beschriebene Mechanik handwerklich sauber und unabhängig
+vom Sprecher nachvollziehbar — und sie deckt eine echte Schwäche im Code auf:
+
+> „So what is an opening range breakout? [...] I plot the highest point of
+> that opening range, I plot the lowest point [...] and I plot the midline.
+> [...] the point of this halfway line [...] is because that is this first
+> profit target [...] I also have a full way profit target [...] the stop
+> loss is if the current candle closes below the midline. [...] by making
+> the stop loss the halfway the midline here we are setting up a perfect
+> two-to-one risk reward ratio."
+
+Die Mechanik: Stop an der Mittellinie der Eröffnungsspanne, zwei
+Kursziele nach der Measured-Move-Logik (Hoch + halbe Spanne, Hoch + volle
+Spanne). Weil die Mittellinie die Spanne exakt halbiert, ist das Risiko
+(Einstieg bis Mittellinie) **per Konstruktion** die Hälfte der Belohnung
+(Einstieg bis volles Ziel) — 2:1, ohne dass ein Parameter dafür justiert
+werden müsste.
+
+**Umgesetzt:** `mds/patterns.py::opening_range_breakout` nutzte zuvor einen
+ad-hoc ATR-gedeckelten Stop ohne Bezug zu den tatsächlichen Zielen. Das ist
+jetzt durch den Mittellinien-Stop ersetzt
+(`test_opening_range_breakout_stops_at_the_midline`).
+
+**Ehrliches Ergebnis, nicht schönredet:** Im Demo-Backtest halbierte sich die
+Zahl der ORB-Trades (10 → 5 von 60 Sessions) — engere, besser begründete
+Stops lassen mehr Signale an den Risikofiltern scheitern — aber der
+Erwartungswert blieb mit rund −0,59R praktisch unverändert. Der Wechsel ist
+durch **Prinzip gerechtfertigt** (ein nachvollziehbarer Zusammenhang zwischen
+Stop und Ziel statt eines willkürlichen ATR-Deckels), **nicht durch einen
+gemessenen Performance-Gewinn** — und erneut nur auf synthetischen Daten
+gemessen, die ohnehin nichts über Rentabilität aussagen.
+
+Ein weiterer Fund aus derselben Analyse, der *nicht* übernommen wurde: Der
+Sprecher nennt für seine eigene (nicht Ross') Variante einen Entry-Cutoff um
+10:00 Uhr, während andere Sekundärquellen für Ross' eigene Praxis 11:30 Uhr
+nennen (bereits in `config/strategy.yaml` hinterlegt). Da die 10:00-Angabe
+explizit die *eigene* Anpassung des Drittanbieters ist, nicht Ross' Regel,
+bleibt der bestehende Wert unverändert.
 
 ---
 
@@ -136,10 +193,15 @@ ist der Moment, in dem dieses Angebot absorbiert wird.
 
 Bruch der Spanne der ersten 5 Minuten. Feuert bewusst **einmal** pro Session.
 
-Im Demo-Lauf ist das mit Abstand das schwächste Setup (−0,59R). Vorsicht bei der
-Interpretation: Das ist synthetische Datenlage, kein Marktbefund. Es war
-allerdings genau die Kennzahl, die einen Simulationsfehler aufdeckte — siehe
-Abschnitt 5.
+- **Einstieg:** 1 Cent über dem Hoch der Eröffnungsspanne
+- **Stop:** an der Mittellinie der Spanne (Hoch + Tief) / 2
+- **Ziele:** „halbes" Maß (Hoch + halbe Spanne) und „volles" Maß (Hoch + volle
+  Spanne) — per Konstruktion 2:1, siehe Abschnitt 0b für die Quelle
+
+Im Demo-Lauf ist das weiterhin das schwächste Setup (−0,59R, bei halbierter
+Trade-Zahl nach der Mittellinien-Umstellung). Vorsicht bei der Interpretation:
+Das ist synthetische Datenlage, kein Marktbefund. Es war allerdings genau die
+Kennzahl, die einen Simulationsfehler aufdeckte — siehe Abschnitt 5.
 
 ### 2.5 VWAP Reclaim
 
@@ -229,6 +291,7 @@ Dokumentiert, weil sie zeigen, wie leicht ein Backtest lügt.
 | 4 | Fester Leg-Fahrplan im Datengenerator | Opening Range lag *jeden* Tag im selben Impuls → ORB kaufte systematisch das Hoch, MFE über **alle 17 Trades** ≤ 0,56R | — (Generator randomisiert) |
 | 5 | Kein Mindest-Stop-Abstand | 5.060 Aktien, 170 $ Kosten, 1 $ Gewinn | `test_stops_that_are_too_tight_are_refused` |
 | 6 | `Stats` mit 15 statt 16 Feldern konstruiert | Absturz bei leerem Handelsbuch | `test_summarize_handles_an_empty_book` |
+| 7 | ORB-Stop ATR-gedeckelt statt an der Mittellinie | Kein nachvollziehbarer Bezug zwischen Stop und Zielen; nach Video-Beleg (0b) ersetzt | `test_opening_range_breakout_stops_at_the_midline` |
 
 Fehler 4 ist der lehrreichste: Er erzeugte ein perfekt konsistentes,
 vollständig falsches Ergebnis. Kein Backtest hätte gewarnt — nur die Frage,
