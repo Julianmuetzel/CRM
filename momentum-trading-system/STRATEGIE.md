@@ -4,12 +4,43 @@ Zerlegung der Small-Cap-Momentum-Strategie in ihre Bestandteile, mit der
 jeweiligen Umsetzung im Code und einer ehrlichen Einordnung, was daran
 übertragbar ist und was nicht.
 
-**Quellenlage:** YouTube war in der Umgebung, in der dieses System entstand,
-netzwerkseitig gesperrt (verifiziert: `403` über Proxy *und* direkt). Die
-Rekonstruktion stützt sich daher auf die öffentlich dokumentierte Fassung der
-Strategie, nicht auf die Videos selbst. `scripts/fetch_transcripts.py` zieht die
-Transkripte nach, sobald Zugang besteht — die Parameter liegen alle in
-`config/strategy.yaml` und werden dann nachjustiert, ohne Codeänderung.
+**Quellenlage:** YouTube ist im Build-Container selbst gesperrt (verifiziert:
+`403` über Proxy *und* direkt), lässt sich aber über den Higgsfield-MCP-Server
+analysieren, der die URL auf eigener Infrastruktur abruft. Zwei Analysen
+wurden tatsächlich durchgeführt — eine Trade-Recap (vollständig, siehe
+Abschnitt 1a) und ein 2015er-Strategie-Webinar (fehlgeschlagen: zu lang für
+eine verlässliche Szenenanalyse; Higgsfields eigene Tool-Beschreibung warnt
+genau davor). Die quantitativen Parameter in `config/strategy.yaml` stammen
+weiterhin aus der öffentlich dokumentierten Fassung der Strategie, nicht aus
+den Videos — dafür bräuchte es kurze, setup-fokussierte Clips statt Recaps
+oder langer Webinare. `scripts/fetch_transcripts.py` bleibt der zweite,
+unabhängige Weg (Untertitel statt Szenenanalyse), sobald `youtube.com` in der
+Umgebung freigegeben ist.
+
+### 1a. Was sich tatsächlich verifizieren ließ
+
+Eine Szenenanalyse von [„Frustrating Red Day -$2,900 on \$EVH"](https://www.youtube.com/watch?v=zgJizLa4zqI)
+(Trade-Recap, nicht Strategie-Erklärung) bestätigt gelebte Praxis, liefert
+aber keine neuen Zahlenwerte für die Konfiguration:
+
+> „The first place where I took a trade was right here on this **false
+> breakout**. I jumped in it for **the break of 20**. I was in at 15 and 20
+> and then **stopped out at 97, so lost 1200 bucks**. The next entry I jumped
+> in trying to **scalp the break over \$8**... then it rips up to 58."
+
+Drei Dinge daran sind bemerkenswert:
+
+1. **Ausbruch über runde Marken, mehrere Teileinstiege.** Deckt sich mit
+   `flat_top_breakout` / `micro_pullback` — kein neuer Parameter, aber eine
+   Bestätigung der Grundannahme.
+2. **Echte Verluste durch Fehlausbrüche.** 1.200 $ Verlust auf einen einzigen
+   False Breakout — exakt das Szenario, vor dem `risk.py`s
+   Tagesverlustgrenze schützen soll.
+3. **Der Opener ist eine Verlustserie, nicht ein Erfolgsmoment:** „Thursday
+   flat... Friday no trades... Monday no trades... Tuesday red 400... today
+   red 2900." Das ist eine unabhängige, reale Bestätigung von Abschnitt 4,
+   Punkt 3 (Sequenz-Verteilung) — Verlustserien sind der Normalfall, keine
+   Ausnahme, auch beim Strategie-Urheber selbst.
 
 ---
 
